@@ -1,0 +1,28 @@
+# .dockerignore
+
+# Ignora a pasta de dependências locais. As dependências serão instaladas
+# de forma limpa dentro do contêiner Docker durante o build.
+# Esta é a linha mais importante para corrigir o erro "Permission denied".
+node_modules
+
+# Ignora a pasta de "build" local, se ela existir. O build será feito
+# dentro do contêiner.
+dist
+build
+
+# Ignora o diretório do Git. Não é necessário dentro da imagem Docker.
+.git
+
+# Ignora arquivos de ambiente local.
+.env
+.env.*
+!.env.example
+
+# Ignora arquivos de log e cache do npm.
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignora arquivos específicos do editor de código.
+.vscode
+.idea
