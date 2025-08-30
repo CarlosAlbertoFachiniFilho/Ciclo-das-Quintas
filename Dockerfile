@@ -1,43 +1,59 @@
-# Dockerfile
-
-# --- ETAPA 1: Construir o Aplicativo (Build Stage) ---
-# Usamos uma imagem leve do Node.js para a etapa de construção
-# Dockerfile
-
-# --- ETAPA 1: Construir o Aplicativo (Build Stage) ---
-# Usamos uma imagem leve do Node.js para a etapa de construção
+# --- ETAPA 1: Build Stage ---
 FROM node:18-alpine AS builder
 
-# Define o diretório de trabalho dentro do contêiner
+# Instala dependências necessárias
+RUN apk add --no-cache git
+
+# Define o diretório de trabalho
 WORKDIR /app
 
-# Copia o package.json e o package-lock.json (se existir)
-# Isso é feito primeiro para aproveitar o cache do Docker
+# Copia arquivos de dependências primeiro (melhor cache)
 COPY package*.json ./
 
-# Instala as dependências de forma limpa
-RUN npm install
+# Limpa cache do npm e instala dependências
+RUN npm ci --only=production --silent
 
-# Copia todo o resto do código do nosso projeto (respeitando o .dockerignore)
+# Copia código fonte
 COPY . .
 
-# Executa o script de build do Vite
+# Build da aplicação
 RUN npm run build
 
-# O resultado será uma pasta /app/dist com os arquivos estáticos
-
-# --- ETAPA 2: Servir o Aplicativo (Serve Stage) ---
-# Usamos uma imagem oficial e super leve do Nginx para servir os arquivos
+# --- ETAPA 2: Production Stage ---
 FROM nginx:alpine
 
-# Copia a configuração personalizada do Nginx que criamos
+# Instala curl para health checks
+RUN apk add --no-cache curl
+
+# Copia configuração customizada do Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copia os arquivos estáticos construídos na Etapa 1 para a pasta pública do Nginx
+# Copia arquivos buildados
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expõe a porta 80, que é a porta padrão do Nginx
-EXPOSE 80
+# Cria usuário não-root para segurança
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
 
-# Comando para iniciar o servidor Nginx quando o contêiner for executado
+# Ajusta permissões
+RUN chown -R nextjs:nodejs /usr/share/nginx/html && \
+    chown -R nextjs:nodejs /var/cache/nginx && \
+    chown -R nextjs:nodejs /var/log/nginx && \
+    chown -R nextjs:nodejs /etc/nginx/conf.d
+
+# Cria diretórios necessários
+RUN touch /var/run/nginx.pid && \
+    chown -R nextjs:nodejs /var/run/nginx.pid
+
+# Muda para usuário não-root
+USER nextjs
+
+# Expõe porta
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/ || exit 1
+
+# Comando de inicialização
 CMD ["nginx", "-g", "daemon off;"]
