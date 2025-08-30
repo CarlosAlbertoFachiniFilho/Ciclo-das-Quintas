@@ -1,0 +1,7 @@
+{
+  "name": "Interactive Circle of Fifths",
+  "description": "An interactive music theory tool to visualize the Circle of Fifths. Select any key to see its relative minor and all of its diatonic chords.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
