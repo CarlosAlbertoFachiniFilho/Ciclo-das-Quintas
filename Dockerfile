@@ -2,17 +2,23 @@
 
 # --- ETAPA 1: Construir o Aplicativo (Build Stage) ---
 # Usamos uma imagem leve do Node.js para a etapa de construção
+# Dockerfile
+
+# --- ETAPA 1: Construir o Aplicativo (Build Stage) ---
+# Usamos uma imagem leve do Node.js para a etapa de construção
 FROM node:18-alpine AS builder
 
 # Define o diretório de trabalho dentro do contêiner
 WORKDIR /app
 
-# Copia o package.json e instala as dependências
+# Copia o package.json e o package-lock.json (se existir)
 # Isso é feito primeiro para aproveitar o cache do Docker
-COPY package.json ./
+COPY package*.json ./
+
+# Instala as dependências de forma limpa
 RUN npm install
 
-# Copia todo o resto do código do nosso projeto
+# Copia todo o resto do código do nosso projeto (respeitando o .dockerignore)
 COPY . .
 
 # Executa o script de build do Vite
